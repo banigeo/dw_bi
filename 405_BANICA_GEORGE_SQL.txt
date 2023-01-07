@@ -1,0 +1,177 @@
+-- 1. sa se afiseze clientii care sunt inscrisi de cel putin 5 luni ordonati descrescator dupa vechime
+select *
+from client
+where months_between(sysdate, data_inscriere)  >= 5
+order by data_inscriere;
+
+update cont set data_inchidere = sysdate where cod_client = (select id_client from client where nume = 'Auchan');
+commit;
+
+--  2. sa se afiseze situatia conturilor persoanelor juridice
+select c.tip_cont, cl.nume, c.sold, c.data_creare, c.data_inchidere, c.nume_cont,
+case when c.data_inchidere is null then 'Activ' else 'Inchis pe data de '||nvl(to_char(data_inchidere,'DD-MM-YYYY HH24:MI.SS'), '-') end as situatie_cont  
+from cont c inner join client cl on (cl.id_client = c.cod_client and cl.tip_client = 'PJ');
+
+-- 3. sa se afiseze media, totalul, minimul si maximul tranzactiilor per magazin
+with raport as (
+select min(suma) as minimum, max(suma) as maximum, sum(suma) as total, avg(suma) as media, count(*) as nr, cod_cont_creditor
+from tranzactii 
+where stare = 'Procesat'
+group by cod_cont_creditor)
+select nr, minimum, maximum, total, media, client.nume as magazin
+from raport 
+join cont on (raport.cod_cont_creditor = cont.id_cont)
+join client on (client.id_client = cont.cod_client);
+
+-- 4. clientii care au cumparat de o singura data de la un magazin
+with raport as (select cod_cont_debitor, cod_cont_creditor
+from tranzactii 
+where stare = 'Procesat'
+group by cod_cont_debitor, cod_cont_creditor
+having count(*) = 1)
+select cldb.nume as cumparator, clcr.nume as magazin 
+from raport 
+join cont db on (cod_cont_debitor = db.id_cont) 
+join client cldb on (db.cod_client = cldb.id_client)
+join cont cr on (cod_cont_creditor = cr.id_cont)
+join client clcr on (cr.cod_client = clcr.id_client);
+
+-- 5. sa se afiseze clientii care au conturi inchise cat si clientii care nu au conturi inca deschise
+update cont set data_inchidere = sysdate where mod(cod_client, 2) = 0; 
+
+select cl.nume, c.nume_cont, 'CONT DESCHIS' as status
+from cont c inner join client cl on (cl.id_client = c.cod_client and c.data_inchidere is null)
+union
+select cl.nume, c.nume_cont, 'CONT INCHIS' as status
+from cont c inner join client cl on (cl.id_client = c.cod_client and c.data_inchidere is not null);
+
+rollback;
+
+-- 6. clientii care au cumparat de la toate magazinele
+with division as 
+(select cod_cont_debitor
+from tranzactii 
+where stare = 'Procesat' 
+group by cod_cont_debitor
+having count(distinct cod_cont_creditor) = (select count(*) from cont join client on (id_client = cod_client) where tip_client = 'PJ'))
+select * from division join cont c on (cod_cont_debitor = id_cont) join client on (id_client = cod_client);
+
+-- 7. sa se afiseze conturile deschise in anul curent, fara initialele RO49POC
+select data_creare, substr(nume_cont,instr(nume_cont, 'POC') + 3)  as numar_cont
+from cont 
+where to_char(data_creare, 'YYYY') = to_char(sysdate, 'YYYY')
+order by numar_cont;
+
+-- 8. situatia tuturor conturilor impreuna cu detinatorii acestora
+select cont.tip_cont
+,      nvl(card.tip_card, canal_plata.tip_echipament) as tip
+,      cont.nume_cont
+,      cont.sold
+,      card.numar_card
+,      client.nume
+from cont left join card on (card.cod_cont = cont.id_cont) left join canal_plata on (canal_plata.cod_cont = cont.id_cont)
+join client on (cont.cod_client = client.id_client)
+order by decode(tip, 'DEBIT', 1, 'CREDIT', 2, 'POS', 3, 'ONLINE' , 4, 5), sold desc;
+
+-- 9. punctul 8 + volumul tranzactiilor pentru fiecare cont
+with cheltuieli as (
+select sum(suma) as total, cod_cont_debitor
+from tranzactii where stare = 'Procesat'
+ group by cod_cont_debitor),
+incasari as (
+select sum(suma) as total, cod_cont_creditor
+from tranzactii where stare = 'Procesat'
+group by cod_cont_creditor
+)
+select cont.tip_cont
+,      nvl(card.tip_card, canal_plata.tip_echipament) as tip
+,      cont.nume_cont
+,      cont.sold
+,      card.numar_card
+,      client.nume
+,      nvl(nvl(cheltuieli.total, incasari.total),0) volum
+from cont left join card on (card.cod_cont = cont.id_cont) left join canal_plata on (canal_plata.cod_cont = cont.id_cont)
+join client on (cont.cod_client = client.id_client)
+left join cheltuieli on (cod_cont_debitor = id_cont)
+left join incasari on (cod_cont_creditor = id_cont)
+order by decode(tip, 'DEBIT', 1, 'CREDIT', 2, 'POS', 3, 'ONLINE' , 4, 5), sold desc;
+
+-- 10. sa se afiseze pe un interval de o saptamana volumul tranzactiilor efectuat in fiecare zi
+with zile as (
+select trunc(sysdate)-(rownum-1) as data
+from dual
+connect by level <= 7)
+, procesari as (
+select sum(suma) as volum, stare, trunc(nvl(data_procesare, data_initiere)) as data_procesare 
+from tranzactii
+group by stare, trunc(nvl(data_procesare, data_initiere)))
+select data, nvl(volum, 0) as volum, nvl(stare, '---') as stare
+from zile left outer join procesari on (data = data_procesare)
+order by data desc, stare desc;
+
+-- 11. TOP 3 comercianti in functie de vanzarile cu POS
+
+select sum(suma) as vanzare, comerciant.nume
+from tranzactii inner join cont on (cod_cont_creditor = id_cont) 
+inner join canal_plata on (cod_cont = id_cont and tip_echipament = 'POS')
+inner join comerciant on (cod_comerciant = id_comerciant)
+where stare = 'Procesat'
+group by comerciant.nume
+order by vanzare desc
+fetch first 3 rows with ties;
+
+-- 13. clientii care nu au carduri expirate
+update card set data_expirare = sysdate where mod(id_card,3) = 0
+select * 
+from client 
+where id_client in (select cod_client 
+                    from cont 
+                    where exists (select 1 
+                                  from card 
+                                  where data_expirare is not null 
+                                  and id_cont = cod_cont));
+rollback;
+
+-- 12. o lista cu fiecare cumparator in functie de comerciant
+with clienti as (
+select distinct cod_cont_debitor, nume
+from tranzactii
+join cont on (cod_cont_debitor = id_cont)
+join client on (id_client = cod_client)),
+comercianti as (
+select distinct cod_cont_creditor, nume
+from tranzactii
+join cont on (cod_cont_creditor = id_cont)
+join client on (id_client = cod_client)
+)
+select distinct (select c.nume from clienti c where t.cod_cont_debitor = c.cod_cont_debitor) as client 
+,      (select c.nume from comercianti c where t.cod_cont_creditor = c.cod_cont_creditor) as magazin 
+from tranzactii t
+order by 2 desc, 1
+
+-- 14. comerciantii care vand ONLINE
+select * 
+from comerciant 
+where id_comerciant in (select cod_comerciant 
+                        from canal_plata 
+						where tip_echipament = 'ONLINE');
+
+-- 15. conturile care au fost cel mai putin utilizate in tranzactii
+with clienti as (
+select count(*), cod_cont_debitor
+from tranzactii
+group by cod_cont_debitor
+order by 1
+fetch first 3 rows only),
+comercianti as (
+select count(*), cod_cont_creditor
+from tranzactii
+group by cod_cont_creditor
+order by 1
+fetch first 3 rows only)
+select nume_cont, 'CLIENT' as tip
+from cont join clienti on (id_cont = cod_cont_debitor)
+union all
+select nume_cont, 'COMERCIANT'
+from cont join comercianti on (id_cont = cod_cont_creditor)
+;
