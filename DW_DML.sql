@@ -1,4 +1,5 @@
 -- DIM_STARE
+TRUNCATE TABLE DIM_STARE;
 INSERT INTO
     DIM_STARE
 SELECT
@@ -10,9 +11,10 @@ SELECT
     END AS ID_Stare,
     Stare
 FROM
-    Tranzactii;
+    db.Tranzactii;
 
 -- DIM_CLIENT
+TRUNCATE TABLE DIM_CLIENT;
 INSERT INTO
     DIM_CLIENT
 SELECT
@@ -24,9 +26,10 @@ SELECT
         ELSE 'Inscris'
     END AS STATUS
 FROM
-    client;
+    db.client;
 
 -- DIM_COMERCIANT
+TRUNCATE TABLE DIM_COMERCIANT;
 INSERT INTO
     DIM_COMERCIANT
 SELECT
@@ -37,9 +40,10 @@ SELECT
         ELSE 'Inscris'
     END AS STATUS
 FROM
-    comerciant;
+    db.comerciant;
 
 -- DIM_DETALII_PLATA
+TRUNCATE TABLE DIM_DETALII_PLATA;
 INSERT INTO
     DIM_DETALII_PLATA
 SELECT
@@ -47,10 +51,11 @@ SELECT
     Tip_Cont,
     Tip_Card
 FROM
-    cont ct
-    INNER JOIN card cd ON ct.ID_Cont = cd.COD_Cont;
+    db.cont ct
+    INNER JOIN db.card cd ON ct.ID_Cont = cd.COD_Cont;
 
 -- DIM_Locatie
+TRUNCATE TABLE DIM_LOCATIE;
 INSERT INTO
     DIM_LOCATIE
 SELECT
@@ -60,10 +65,11 @@ SELECT
     Tara,
     Site
 FROM
-    locatie;
+    db.locatie;
 
 -- DIM_CANAL_PLATA
-INSERT INTO
+TRUNCATE TABLE DIM_CANAL_PLATA;
+INSERT INTO 
     DIM_CANAL_PLATA
 SELECT
     DISTINCT CASE
@@ -73,7 +79,7 @@ SELECT
     END AS ID_Canal_Plata,
     Tip_Echipament AS Tip_Canal_Plata
 FROM
-    canal_plata;
+    db.canal_plata;
 
 -- FACT_TRANZACTII
 INSERT INTO
@@ -95,11 +101,11 @@ SELECT
     ID_Cont,
     ID_Comerciant,
     CASE
-        CASE
-            WHEN Tip_Echipament = 'POS' THEN 1
-            WHEN Tip_Echipament = 'ONLINE' THEN 2
-            ELSE NULL
-        END AS ID_Canal_Plata,
+        WHEN Tip_Echipament = 'POS' THEN 1
+        WHEN Tip_Echipament = 'ONLINE' THEN 2
+        ELSE NULL
+    END AS ID_Canal_Plata,
+    CASE
         WHEN Stare = 'Initiat' THEN 1
         WHEN Stare = 'Procesat' THEN 2
         WHEN Stare = 'Eroare' THEN 3
@@ -113,12 +119,12 @@ SELECT
         '99999.99'
     ) AS Durata
 FROM
-    tranzactii t
-    LEFT JOIN cont co ON t.COD_CONT_DEBITOR = co.ID_CONT
-    LEFT JOIN client cl ON co.COD_CLIENT = cl.ID_CLIENT
-    LEFT JOIN canal_plata cp ON co.ID_CONT = cp.COD_CONT
-    LEFT JOIN locatie loc ON cp.COD_LOCATIE = loc.ID_LOCATIE
-    LEFT JOIN comerciant cm ON cp.COD_COMERCIANT = cm.ID_COMERCIANT
+    db.tranzactii t
+    LEFT JOIN db.cont co ON t.COD_CONT_DEBITOR = co.ID_CONT
+    LEFT JOIN db.client cl ON co.COD_CLIENT = cl.ID_CLIENT
+    LEFT JOIN db.canal_plata cp ON co.ID_CONT = cp.COD_CONT
+    LEFT JOIN db.locatie loc ON cp.COD_LOCATIE = loc.ID_LOCATIE
+    LEFT JOIN db.comerciant cm ON cp.COD_COMERCIANT = cm.ID_COMERCIANT
 UNION
 ALL
 SELECT
@@ -145,9 +151,9 @@ SELECT
         '99999.99'
     ) AS Durata
 FROM
-    tranzactii t
-    LEFT JOIN cont co ON t.COD_CONT_CREDITOR = co.ID_CONT
-    LEFT JOIN client cl ON co.COD_CLIENT = cl.ID_CLIENT
-    LEFT JOIN canal_plata cp ON co.ID_CONT = cp.COD_CONT
-    LEFT JOIN locatie loc ON cp.COD_LOCATIE = loc.ID_LOCATIE
-    LEFT JOIN comerciant cm ON cp.COD_COMERCIANT = cm.ID_COMERCIANT;
+    db.tranzactii t
+    LEFT JOIN db.cont co ON t.COD_CONT_CREDITOR = co.ID_CONT
+    LEFT JOIN db.client cl ON co.COD_CLIENT = cl.ID_CLIENT
+    LEFT JOIN db.canal_plata cp ON co.ID_CONT = cp.COD_CONT
+    LEFT JOIN db.locatie loc ON cp.COD_LOCATIE = loc.ID_LOCATIE
+    LEFT JOIN db.comerciant cm ON cp.COD_COMERCIANT = cm.ID_COMERCIANT;
