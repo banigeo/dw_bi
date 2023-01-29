@@ -2,9 +2,9 @@
 DROP DIMENSION locatie;
 CREATE DIMENSION locatie
 LEVEL locatie_id  IS (dim_locatie.id_locatie)
-LEVEL strada  IS (dim_locatie.strada)
-LEVEL oras  IS (dim_locatie.oras)
-LEVEL tara  IS (dim_locatie.tara)
+LEVEL strada  IS (dim_locatie.strada) SKIP WHEN NULL
+LEVEL oras  IS (dim_locatie.oras) SKIP WHEN NULL
+LEVEL tara  IS (dim_locatie.tara) SKIP WHEN NULL
 HIERARCHY ierarhie_locatie (locatie_id CHILD OF strada  CHILD OF oras  CHILD OF tara)
 ATTRIBUTE locatie_info LEVEL locatie_id DETERMINES 
 (dim_locatie.strada, dim_locatie.oras, dim_locatie.tara, dim_locatie.site);
@@ -17,8 +17,8 @@ LEVEL anul  IS (dim_calendar.anul)
 HIERARCHY ierarhie_timp (data_id CHILD OF data CHILD OF anul)
 ATTRIBUTE timp_id_info LEVEL data_id DETERMINES
 (dim_calendar.id_data, dim_calendar.data, dim_calendar.ziua, dim_calendar.luna, dim_calendar.anul)
-ATTRIBUTE timp_id_info LEVEL data DETERMINES
-(dim_calendar.data, dim_calendar.ziua, dim_calendar.luna, dim_calendar.anul);
+ATTRIBUTE timp_data_info LEVEL data DETERMINES
+(dim_calendar.id_data, dim_calendar.data, dim_calendar.ziua, dim_calendar.luna, dim_calendar.anul);
 
 -- display dimensions
 SET SERVEROUTPUT ON FORMAT WRAPPED;  --to improve the display of info
