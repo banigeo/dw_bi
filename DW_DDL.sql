@@ -76,6 +76,8 @@ FROM
             dual connect by LEVEL <= 2000
     );
 
+
+drop table FACT_TRANZACTII;
 CREATE TABLE FACT_TRANZACTII (
     ID NUMBER GENERATED ALWAYS AS IDENTITY(START WITH 1 INCREMENT by 1) PRIMARY KEY,
     ID_Tranzactie NUMBER(10) NOT NULL,
@@ -85,7 +87,9 @@ CREATE TABLE FACT_TRANZACTII (
     ID_Canal_Plata NUMBER(10) NOT NULL,
     ID_Stare NUMBER(10) NOT NULL,
     ID_Locatie NUMBER(10) NOT NULL,
-    ID_Data NUMBER(10) NOT NULL,
+    ID_Data NUMBER(8) NOT NULL,
     Suma NUMBER(10, 2) NOT NULL,
-    Durata NUMBER(7, 2) DEFAULT NULL
-);
+    Durata NUMBER(7, 2) DEFAULT NULL)
+    partition by range(id_data)
+    interval(1) 
+    (partition partitie_initiala values less than (20220101));
