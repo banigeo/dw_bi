@@ -20,6 +20,8 @@ CREATE TABLE DIM_CLIENT (
     STATUS VARCHAR(15) NOT NULL
 );
 
+create bitmap index dim_client_bmp  on dim_client (tip_client);
+
 CREATE TABLE DIM_DETALII_PLATA (
     ID_Cont NUMBER(10) PRIMARY KEY,
     Tip_Card VARCHAR(10) NOT NULL,
