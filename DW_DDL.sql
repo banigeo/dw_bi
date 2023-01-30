@@ -13,11 +13,19 @@ CREATE TABLE DIM_STARE (
     Stare VARCHAR2(50 BYTE) NOT NULL
 );
 
-CREATE TABLE DIM_CLIENT (
-    ID_Client NUMBER(10) PRIMARY KEY,
-    Nume VARCHAR(100) NOT NULL,
-    Tip_Client VARCHAR(50) NOT NULL,
-    STATUS VARCHAR(15) NOT NULL
+CREATE TABLE DIM_LOCATIE (
+    ID_Locatie NUMBER(10) PRIMARY KEY,
+    Strada VARCHAR(100) DEFAULT NULL,
+    Oras VARCHAR(100) DEFAULT NULL,
+    Tara VARCHAR(100) DEFAULT NULL,
+    Site VARCHAR(100) DEFAULT NULL
+)    
+partition by list (oras) 
+( partition TM values ('Timisoara')
+, partition B values ('Bucuresti')
+, partition CT values ('Constanta')
+, partition BV values ('Brasov')
+, partition nedefinit values (default)
 );
 
 create bitmap index dim_client_bmp  on dim_client (tip_client);
