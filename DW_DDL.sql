@@ -7,7 +7,6 @@
 -- DROP TABLE DIM_CLIENT;
 -- DROP TABLE DIM_STARE;
 
-
 CREATE TABLE DIM_STARE (
     ID_Stare NUMBER(10) NOT NULL PRIMARY KEY,
     Stare VARCHAR2(50 BYTE) NOT NULL
@@ -19,16 +18,25 @@ CREATE TABLE DIM_LOCATIE (
     Oras VARCHAR(100) DEFAULT NULL,
     Tara VARCHAR(100) DEFAULT NULL,
     Site VARCHAR(100) DEFAULT NULL
-)    
-partition by list (oras) 
-( partition TM values ('Timisoara')
-, partition B values ('Bucuresti')
-, partition CT values ('Constanta')
-, partition BV values ('Brasov')
-, partition nedefinit values (default)
+) PARTITION by list (oras) (
+    PARTITION TM
+    VALUES
+        ('Timisoara'),
+        PARTITION B
+    VALUES
+        ('Bucuresti'),
+        PARTITION CT
+    VALUES
+        ('Constanta'),
+        PARTITION BV
+    VALUES
+        ('Brasov'),
+        PARTITION nedefinit
+    VALUES
+        (DEFAULT)
 );
 
-create bitmap index dim_client_bmp  on dim_client (tip_client);
+CREATE bitmap INDEX dim_client_bmp ON dim_client (tip_client);
 
 CREATE TABLE DIM_DETALII_PLATA (
     ID_Cont NUMBER(10) PRIMARY KEY,
@@ -86,9 +94,9 @@ FROM
             dual connect by LEVEL <= 2000
     );
 
-drop table FACT_TRANZACTII;
+DROP TABLE FACT_TRANZACTII;
+
 CREATE TABLE FACT_TRANZACTII (
-    ID NUMBER GENERATED ALWAYS AS IDENTITY(START WITH 1 INCREMENT by 1) PRIMARY KEY,
     ID_Tranzactie NUMBER(10) NOT NULL,
     ID_Client NUMBER(10) NOT NULL,
     ID_Cont NUMBER(10) NOT NULL,
@@ -98,7 +106,18 @@ CREATE TABLE FACT_TRANZACTII (
     ID_Locatie NUMBER(10) NOT NULL,
     ID_Data NUMBER(8) NOT NULL,
     Suma NUMBER(10, 2) NOT NULL,
-    Durata NUMBER(7, 2) DEFAULT NULL)
-    partition by range(id_data)
-    interval(1) 
-    (partition partitie_initiala values less than (20220101));
+    Durata NUMBER(7, 2) DEFAULT NULL,
+    PRIMARY KEY(ID_Tranzactie, ID_Client, ID_Cont)
+) PARTITION by RANGE(id_data) INTERVAL(1) (
+    PARTITION partitie_initiala
+    VALUES
+        less than (20220101)
+);
+
+  CREATE TABLE DIM_CLIENT 
+   (
+    ID_Client NUMBER(10,0) PRIMARY KEY, 
+	Nume VARCHAR2(100) NOT NULL, 
+	Tip_Client VARCHAR2(50) NOT NULL, 
+	Status VARCHAR2(15) NOT NULL
+   );
