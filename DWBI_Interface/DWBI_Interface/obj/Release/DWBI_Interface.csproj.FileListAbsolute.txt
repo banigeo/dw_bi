@@ -1,0 +1,13 @@
+C:\Users\CAR\source\repos\DWBI_Interface\DWBI_Interface\bin\Release\DWBI_Interface.exe.config
+C:\Users\CAR\source\repos\DWBI_Interface\DWBI_Interface\bin\Release\DWBI_Interface.exe
+C:\Users\CAR\source\repos\DWBI_Interface\DWBI_Interface\bin\Release\DWBI_Interface.pdb
+C:\Users\CAR\source\repos\DWBI_Interface\DWBI_Interface\bin\Release\Oracle.ManagedDataAccess.dll
+C:\Users\CAR\source\repos\DWBI_Interface\DWBI_Interface\obj\Release\DWBI_Interface.csproj.AssemblyReference.cache
+C:\Users\CAR\source\repos\DWBI_Interface\DWBI_Interface\obj\Release\DWBI_Interface.csproj.SuggestedBindingRedirects.cache
+C:\Users\CAR\source\repos\DWBI_Interface\DWBI_Interface\obj\Release\DWBI_Interface.Form1.resources
+C:\Users\CAR\source\repos\DWBI_Interface\DWBI_Interface\obj\Release\DWBI_Interface.Properties.Resources.resources
+C:\Users\CAR\source\repos\DWBI_Interface\DWBI_Interface\obj\Release\DWBI_Interface.csproj.GenerateResource.cache
+C:\Users\CAR\source\repos\DWBI_Interface\DWBI_Interface\obj\Release\DWBI_Interface.csproj.CoreCompileInputs.cache
+C:\Users\CAR\source\repos\DWBI_Interface\DWBI_Interface\obj\Release\DWBI_Interface.csproj.CopyComplete
+C:\Users\CAR\source\repos\DWBI_Interface\DWBI_Interface\obj\Release\DWBI_Interface.exe
+C:\Users\CAR\source\repos\DWBI_Interface\DWBI_Interface\obj\Release\DWBI_Interface.pdb
