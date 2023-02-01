@@ -86,9 +86,9 @@ FROM
         FROM
             dual connect by LEVEL <= 2000
     );
-drop index calendar_idx;
-create index calendar_idx on dim_calendar (id_data) global partition by hash(id_data) partitions 4;
 
+drop index calendar_idx;
+create index calendar_idx on dim_calendar (luna) global partition by hash(luna) partitions 12;
 
 DROP TABLE FACT_TRANZACTII;
 
