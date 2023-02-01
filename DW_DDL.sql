@@ -35,8 +35,8 @@ CREATE TABLE DIM_LOCATIE (
     VALUES
         (DEFAULT)
 );
-
-CREATE bitmap INDEX dim_client_bmp ON dim_client (tip_client);
+drop index tara_idx;
+create index tara_idx on dim_locatie (tara) local;
 
 CREATE TABLE DIM_DETALII_PLATA (
     ID_Cont NUMBER(10) PRIMARY KEY,
@@ -50,13 +50,6 @@ CREATE TABLE DIM_COMERCIANT (
     STATUS VARCHAR(15)
 );
 
-CREATE TABLE DIM_LOCATIE (
-    ID_Locatie NUMBER(10) PRIMARY KEY,
-    Strada VARCHAR(100) DEFAULT NULL,
-    Oras VARCHAR(100) DEFAULT NULL,
-    Tara VARCHAR(100) DEFAULT NULL,
-    Site VARCHAR(100) DEFAULT NULL
-);
 
 CREATE TABLE DIM_CANAL_PLATA (
     ID_Canal_Plata NUMBER(10) NOT NULL,
@@ -94,6 +87,9 @@ FROM
             dual connect by LEVEL <= 2000
     );
 
+drop index calendar_idx;
+create index calendar_idx on dim_calendar (luna) global partition by hash(luna) partitions 12;
+
 DROP TABLE FACT_TRANZACTII;
 
 CREATE TABLE FACT_TRANZACTII (
@@ -121,3 +117,4 @@ CREATE TABLE FACT_TRANZACTII (
 	Tip_Client VARCHAR2(50) NOT NULL, 
 	Status VARCHAR2(15) NOT NULL
    );
+   CREATE bitmap INDEX dim_client_bmp ON dim_client (tip_client);
