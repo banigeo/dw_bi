@@ -1,0 +1,140 @@
+CREATE TABLE FACT_TRANZACTII (
+    ID_Tranzactie NUMBER(10) NOT NULL,
+    ID_Client NUMBER(10) NOT NULL,
+    ID_Cont NUMBER(10) NOT NULL,
+    ID_Comerciant NUMBER(10) NOT NULL,
+    ID_Canal_Plata NUMBER(10) NOT NULL,
+    ID_Stare NUMBER(10) NOT NULL,
+    ID_Locatie NUMBER(10) NOT NULL,
+    ID_Data NUMBER(8) NOT NULL,
+    Suma NUMBER(10, 2) NOT NULL,
+    Durata NUMBER(7, 2) DEFAULT NULL,
+    PRIMARY KEY(ID_Tranzactie, ID_Client, ID_Cont)
+) PARTITION by RANGE(id_data) INTERVAL(1) (
+    PARTITION partitie_initiala
+    VALUES
+        less than (20220101)
+);
+
+analyze table fact_tranzactii compute statistics;
+
+EXPLAIN PLAN
+SET STATEMENT_ID = 'st_fact_partition'
+FOR 
+select * from fact_tranzactii where id_data = 20221231;
+
+
+SELECT plan_table_output
+FROM
+table(dbms_xplan.display('plan_table','st_fact_partition','serial'));
+
+Plan hash value: 3811362893
+ 
+----------------------------------------------------------------------------------------------------------
+| Id  | Operation              | Name            | Rows  | Bytes | Cost (%CPU)| Time     | Pstart| Pstop |
+----------------------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT       |                 |    24 |   648 |   274   (0)| 00:00:01 |       |       |
+|   1 |  PARTITION RANGE SINGLE|                 |    24 |   648 |   274   (0)| 00:00:01 |  1132 |  1132 |
+|*  2 |   TABLE ACCESS FULL    | FACT_TRANZACTII |    24 |   648 |   274   (0)| 00:00:01 |  1132 |  1132 |
+----------------------------------------------------------------------------------------------------------
+Predicate Information (identified by operation id):
+---------------------------------------------------
+ 
+   2 – filter("ID_DATA"=20221231)
+
+EXPLAIN PLAN
+SET STATEMENT_ID = 'st_fact_partition_pruning'
+FOR 
+select * from fact_tranzactii where id_data between 20230123 and 20230128;
+
+SELECT plan_table_output
+FROM
+table(dbms_xplan.display('plan_table','st_fact_partition_pruning','serial'));
+
+
+Plan hash value: 370717546
+ 
+------------------------------------------------------------------------------------------------------------
+| Id  | Operation                | Name            | Rows  | Bytes | Cost (%CPU)| Time     | Pstart| Pstop |
+------------------------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT         |                 |     6 |   168 |   820   (1)| 00:00:01 |       |       |
+|   1 |  PARTITION RANGE ITERATOR|                 |     6 |   168 |   820   (1)| 00:00:01 | 10024 | 10029 |
+|*  2 |   TABLE ACCESS FULL      | FACT_TRANZACTII |     6 |   168 |   820   (1)| 00:00:01 | 10024 | 10029 |
+------------------------------------------------------------------------------------------------------------
+ 
+Predicate Information (identified by operation id):
+---------------------------------------------------
+ 
+   2 - filter("ID_DATA">=20230123 AND "ID_DATA"<=20230128)
+
+
+
+CREATE TABLE DIM_LOCATIE (
+    ID_Locatie NUMBER(10) PRIMARY KEY,
+    Strada VARCHAR(100) DEFAULT NULL,
+    Oras VARCHAR(100) DEFAULT NULL,
+    Tara VARCHAR(100) DEFAULT NULL,
+    Site VARCHAR(100) DEFAULT NULL
+) PARTITION by list (oras) (
+    PARTITION TM
+    VALUES
+        ('Timisoara'),
+        PARTITION B
+    VALUES
+        ('Bucuresti'),
+        PARTITION CT
+    VALUES
+        ('Constanta'),
+        PARTITION BV
+    VALUES
+        ('Brasov'),
+        PARTITION nedefinit
+    VALUES
+        (DEFAULT)
+);
+
+analyze table dim_locatie compute statistics;
+Table DIM_LOCATIE analyzed.
+
+
+EXPLAIN PLAN
+SET STATEMENT_ID = 'st_dim_partition'
+FOR 
+select * from dim_locatie where oras = 'Timisoara'
+
+
+SELECT plan_table_output
+FROM
+table(dbms_xplan.display('plan_table','st_dim_partition','serial'));
+
+Plan hash value: 3299633729
+
+-----------------------------------------------------------------------------------------------------
+| Id  | Operation             | Name        | Rows  | Bytes | Cost (%CPU)| Time     | Pstart| Pstop |
+|   0 | SELECT STATEMENT      |             |     1 |    36 |   274   (0)| 00:00:01 |       |       |
+|   1 |  PARTITION LIST SINGLE|             |     1 |    36 |   274   (0)| 00:00:01 |   KEY |   KEY |
+|   2 |   TABLE ACCESS FULL   | DIM_LOCATIE |     1 |    36 |   274   (0)| 00:00:01 |     1 |     1 |
+-----------------------------------------------------------------------------------------------------
+
+EXPLAIN PLAN
+SET STATEMENT_ID = 'st_dim_partition_pruning'
+FOR 
+select * from dim_locatie where oras in ('Timisoara', 'Constanta')
+
+
+SELECT plan_table_output
+FROM
+table(dbms_xplan.display('plan_table','st_dim_partition_pruning','serial'));
+
+
+Plan hash value: 1889622376
+ 
+-----------------------------------------------------------------------------------------------------
+| Id  | Operation             | Name        | Rows  | Bytes | Cost (%CPU)| Time     | Pstart| Pstop |
+-----------------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT      |             |     2 |    54 |   547   (0)| 00:00:01 |       |       |
+|   1 |  PARTITION LIST INLIST|             |     2 |    54 |   547   (0)| 00:00:01 |KEY(I) |KEY(I) |
+|   2 |   TABLE ACCESS FULL   | DIM_LOCATIE |     2 |    54 |   547   (0)| 00:00:01 |KEY(I) |KEY(I) |
+-----------------------------------------------------------------------------------------------------
+
+

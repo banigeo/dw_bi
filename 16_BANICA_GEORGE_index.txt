@@ -1,0 +1,102 @@
+drop index calendar_idx;
+create index calendar_idx on dim_calendar (luna) global partition by hash(luna) partitions 12;
+
+EXPLAIN PLAN 
+SET STATEMENT_ID = 's1_index_global' FOR
+select /*+ index(dim_calendar calendar_idx) */ * from dim_calendar where luna= 'June';
+
+SELECT plan_table_output 
+FROM 
+table(dbms_xplan.display('plan_table', 's1_index_global','serial'));
+
+Plan hash value: 2382551087
+ 
+---------------------------------------------------------------------------------------------------------------------
+| Id  | Operation                            | Name         | Rows  | Bytes | Cost (%CPU)| Time     | Pstart| Pstop |
+---------------------------------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT                     |              |   167 |  5344 |     8   (0)| 00:00:01 |       |       |
+|   1 |  PARTITION HASH SINGLE               |              |   167 |  5344 |     8   (0)| 00:00:01 |     7 |     7 |
+|   2 |   TABLE ACCESS BY INDEX ROWID BATCHED| DIM_CALENDAR |   167 |  5344 |     8   (0)| 00:00:01 |       |       |
+|*  3 |    INDEX RANGE SCAN                  | CALENDAR_IDX |   167 |       |     1   (0)| 00:00:01 |     7 |     7 |
+---------------------------------------------------------------------------------------------------------------------
+
+drop index tara_idx;
+create index tara_idx on dim_locatie (tara) local;
+
+EXPLAIN PLAN 
+SET STATEMENT_ID = 's1_index_local' FOR
+select * from dim_locatie where tara = 'Romania';
+
+SELECT plan_table_output 
+FROM 
+table(dbms_xplan.display('plan_table', 's1_index_local','serial'));
+
+--------------------------------------------------------------------------------------------------------------------------
+| Id  | Operation                                  | Name        | Rows  | Bytes | Cost (%CPU)| Time     | Pstart| Pstop |
+--------------------------------------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT                           |             |     4 |   124 |     8   (0)| 00:00:01 |       |       |
+|   1 |  PARTITION LIST ALL                        |             |     4 |   124 |     8   (0)| 00:00:01 |     1 |     5 |
+|   2 |   TABLE ACCESS BY LOCAL INDEX ROWID BATCHED| DIM_LOCATIE |     4 |   124 |     8   (0)| 00:00:01 |     1 |     5 |
+|*  3 |    INDEX RANGE SCAN                        | TARA_IDX    |     4 |       |     4   (0)| 00:00:01 |     1 |     5 |
+--------------------------------------------------------------------------------------------------------------------------
+
+CREATE bitmap INDEX dim_client_bmp ON dim_client (tip_client);
+
+analyze index dim_client_bmp compute statistics;
+EXPLAIN PLAN 
+SET STATEMENT_ID = 's1_index_bmp' FOR
+select /*+ index(dim_client dim_client_bmp) */ * from dim_client where tip_client = 'PF';
+
+SELECT plan_table_output 
+FROM 
+table(dbms_xplan.display('plan_table', 's1_index_bmp','serial'));
+
+Plan hash value: 2457481617
+ 
+------------------------------------------------------------------------------------------------------
+| Id  | Operation                           | Name           | Rows  | Bytes | Cost (%CPU)| Time     |
+------------------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT                    |                |     6 |   156 |     7   (0)| 00:00:01 |
+|   1 |  TABLE ACCESS BY INDEX ROWID BATCHED| DIM_CLIENT     |     6 |   156 |     7   (0)| 00:00:01 |
+|   2 |   BITMAP CONVERSION TO ROWIDS       |                |       |       |            |          |
+|*  3 |    BITMAP INDEX SINGLE VALUE        | DIM_CLIENT_BMP |       |       |            |          |
+------------------------------------------------------------------------------------------------------
+
+create bitmap index bmp_join_idx on fact_tranzactii (suma) from fact_tranzactii f, dim_comerciant d 
+where f.id_comerciant = d.id_comerciant local;
+
+analyze index bmp_join_idx compute statistics;
+alter session set star_transformation_enabled = true;
+
+
+EXPLAIN PLAN 
+SET STATEMENT_ID = 's1_index_join_bmp' FOR
+select /*+ STAR_TRANSFORMATION */ 
+/*+ FACT(fact_tranzactii) */
+f.suma, d.nume
+from fact_tranzactii f, dim_comerciant d 
+where f.id_comerciant = d.id_comerciant
+and suma = 50;
+
+SELECT plan_table_output 
+FROM 
+table(dbms_xplan.display('plan_table', 's1_index_join_bmp','serial'));
+
+Plan hash value: 3558226070
+ 
+--------------------------------------------------------------------------------------------------------------------------------
+| Id  | Operation                                    | Name            | Rows  | Bytes | Cost (%CPU)| Time     | Pstart| Pstop |
+--------------------------------------------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT                             |                 |     1 |    37 |     1   (0)| 00:00:01 |       |       |
+|   1 |  NESTED LOOPS                                |                 |     1 |    37 |     1   (0)| 00:00:01 |       |       |
+|   2 |   NESTED LOOPS                               |                 |     1 |    37 |     1   (0)| 00:00:01 |       |       |
+|   3 |    PARTITION RANGE ALL                       |                 |     1 |    26 |     1   (0)| 00:00:01 |     1 |1048575|
+|*  4 |     TABLE ACCESS BY LOCAL INDEX ROWID BATCHED| FACT_TRANZACTII |     1 |    26 |     1   (0)| 00:00:01 |     1 |1048575|
+|   5 |      BITMAP CONVERSION TO ROWIDS             |                 |       |       |            |          |       |       |
+|*  6 |       BITMAP INDEX SINGLE VALUE              | BMP_JOIN_IDX    |       |       |            |          |     1 |1048575|
+|*  7 |    INDEX UNIQUE SCAN                         | SYS_C008471     |     1 |       |     0   (0)| 00:00:01 |       |       |
+|   8 |   TABLE ACCESS BY INDEX ROWID                | DIM_COMERCIANT  |     1 |    11 |     0   (0)| 00:00:01 |       |       |
+--------------------------------------------------------------------------------------------------------------------------------
+
+
+
